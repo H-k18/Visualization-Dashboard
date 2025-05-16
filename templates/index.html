@@ -6,145 +6,238 @@
     <title>Data Visualization Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Inter', sans-serif; /* A common, clean sans-serif font */
-            background-color: #f3f4f6; /* Light gray background */
+            font-family: 'Inter', sans-serif;
+            background-color: #eef2f7; /* Lighter, slightly bluish gray background */
+            color: #374151; /* Default text color - gray-700 */
         }
-        .chart-container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-            overflow-x: auto; /* For charts that might be wide */
+        .dashboard-header {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px 0 rgba(0,0,0,0.05);
+            padding: 1rem 2rem; /* py-4 px-8 */
+            margin-bottom: 2rem; /* mb-8 */
         }
-        .filter-select {
-            min-width: 150px; /* Ensure select boxes have a decent width */
+        .dashboard-title {
+            color: #1e3a8a; /* Darker blue for title - blue-800 */
         }
-        /* Custom scrollbar for chart containers if needed */
-        .chart-container::-webkit-scrollbar {
-            height: 8px;
+
+        .filter-container {
+            background-color: #ffffff;
+            padding: 1.5rem; /* p-6 */
+            border-radius: 0.5rem; /* rounded-lg */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Softer, more spread shadow */
+            margin-bottom: 2rem; /* mb-8 */
         }
-        .chart-container::-webkit-scrollbar-thumb {
-            background-color: #cbd5e1; /* scrollbar color */
-            border-radius: 4px;
-        }
-        .chart-title {
-            font-size: 1.125rem; /* text-lg */
-            font-weight: 600; /* font-semibold */
-            margin-bottom: 1rem; /* mb-4 */
+        .filter-title {
             color: #1f2937; /* text-gray-800 */
         }
-        /* D3 Tooltip Style */
+        .filter-select {
+            min-width: 150px;
+            border-color: #d1d5db; /* border-gray-300 */
+            transition: all 0.2s ease-in-out;
+        }
+        .filter-select:focus {
+            border-color: #4f46e5; /* focus:border-indigo-500 */
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.3); /* focus:ring-indigo-500 with opacity */
+        }
+        .btn {
+            padding: 0.625rem 1.25rem; /* px-5 py-2.5 for a slightly larger button */
+            border-radius: 0.375rem; /* rounded-md */
+            font-weight: 500; /* font-medium */
+            transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+        }
+        .btn-primary {
+            background-color: #4f46e5; /* bg-indigo-600 */
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #4338ca; /* hover:bg-indigo-700 */
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+        }
+        .btn-secondary {
+            background-color: #6b7280; /* bg-gray-500 */
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #4b5563; /* hover:bg-gray-600 */
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+        }
+
+        .chart-card { /* Renamed from chart-container for clarity */
+            background-color: #ffffff;
+            padding: 1.5rem; /* p-6 */
+            border-radius: 0.5rem; /* rounded-lg */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            margin-bottom: 1.5rem; /* mb-6 */
+            overflow-x: auto;
+        }
+        .chart-card::-webkit-scrollbar {
+            height: 6px;
+        }
+        .chart-card::-webkit-scrollbar-thumb {
+            background-color: #a5b4fc; /* indigo-300 */
+            border-radius: 3px;
+        }
+        .chart-title-text { /* Renamed from chart-title */
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 600; /* font-semibold */
+            margin-bottom: 1.25rem; /* mb-5 */
+            color: #374151; /* text-gray-700 */
+            border-bottom: 1px solid #e5e7eb; /* border-gray-200 */
+            padding-bottom: 0.75rem; /* pb-3 */
+        }
         .tooltip {
             position: absolute;
             text-align: center;
-            padding: 8px;
-            font: 12px sans-serif;
-            background: lightsteelblue;
+            padding: 0.5rem; /* p-2 */
+            font-size: 0.75rem; /* text-xs */
+            background: rgba(45, 55, 72, 0.9); /* bg-gray-700 with opacity */
+            color: white;
             border: 0px;
-            border-radius: 8px;
+            border-radius: 0.375rem; /* rounded-md */
             pointer-events: none;
             opacity: 0;
             transition: opacity 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
-        /* Ensure SVGs are responsive */
         svg {
             width: 100%;
             height: auto;
-            max-height: 400px; /* Prevent charts from becoming too tall */
+            max-height: 380px; /* Slightly adjusted max-height */
+        }
+        /* Axis styling for D3 charts */
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: #d1d5db; /* gray-300 */
+            shape-rendering: crispEdges;
+        }
+        .axis text {
+            font-size: 11px;
+            fill: #6b7280; /* gray-500 */
+        }
+        .grid-line {
+            stroke: #e5e7eb; /* gray-200 */
+            stroke-opacity: 0.7;
+            shape-rendering: crispEdges;
+        }
+        /* Bar chart bar styling */
+        .bar {
+            fill: #6366f1; /* indigo-500 */
+            transition: fill 0.2s ease-in-out;
+        }
+        .bar:hover {
+            fill: #4f46e5; /* indigo-600 */
+        }
+        /* Line chart line styling */
+        .line-path {
+            fill: none;
+            stroke: #6366f1; /* indigo-500 */
+            stroke-width: 2.5px;
+        }
+        .line-dot {
+            fill: #6366f1; /* indigo-500 */
+            stroke: white;
+            stroke-width: 1.5px;
+            transition: r 0.2s ease-in-out, fill 0.2s ease-in-out;
+        }
+        .line-dot:hover {
+            r: 6px !important; /* Increase radius on hover */
+            fill: #4338ca; /* indigo-700 */
         }
     </style>
 </head>
-<body class="p-4 md:p-8">
-
-    <header class="mb-8">
-        <h1 class="text-3xl font-bold text-center text-gray-700">Data Insights Dashboard</h1>
+<body class="p-0 md:p-0"> <header class="dashboard-header">
+        <h1 class="text-3xl font-bold text-center dashboard-title">Data Insights Dashboard</h1>
     </header>
 
-    <div id="filters" class="mb-8 p-6 bg-white rounded-lg shadow-md">
-        <h2 class="text-xl font-semibold mb-4 text-gray-700">Filters</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
-            <div>
-                <label for="endYearFilter" class="block text-sm font-medium text-gray-700">End Year</label>
-                <select id="endYearFilter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md filter-select">
-                    <option value="">All Years</option>
-                </select>
+    <main class="p-4 md:p-8">
+        <div id="filters" class="filter-container">
+            <h2 class="text-xl font-semibold mb-6 filter-title">Refine Your View</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 items-end">
+                <div>
+                    <label for="endYearFilter" class="block text-sm font-medium text-gray-600 mb-1">End Year</label>
+                    <select id="endYearFilter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md filter-select">
+                        <option value="">All Years</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="topicFilter" class="block text-sm font-medium text-gray-600 mb-1">Topic</label>
+                    <select id="topicFilter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md filter-select">
+                        <option value="">All Topics</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="sectorFilter" class="block text-sm font-medium text-gray-600 mb-1">Sector</label>
+                    <select id="sectorFilter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md filter-select">
+                        <option value="">All Sectors</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="regionFilter" class="block text-sm font-medium text-gray-600 mb-1">Region</label>
+                    <select id="regionFilter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md filter-select">
+                        <option value="">All Regions</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="pestleFilter" class="block text-sm font-medium text-gray-600 mb-1">PESTLE</label>
+                    <select id="pestleFilter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md filter-select">
+                        <option value="">All PESTLE</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="sourceFilter" class="block text-sm font-medium text-gray-600 mb-1">Source</label>
+                    <select id="sourceFilter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md filter-select">
+                        <option value="">All Sources</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="countryFilter" class="block text-sm font-medium text-gray-600 mb-1">Country</label>
+                    <select id="countryFilter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md filter-select">
+                        <option value="">All Countries</option>
+                    </select>
+                </div>
             </div>
-            <div>
-                <label for="topicFilter" class="block text-sm font-medium text-gray-700">Topic</label>
-                <select id="topicFilter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md filter-select">
-                    <option value="">All Topics</option>
-                </select>
-            </div>
-            <div>
-                <label for="sectorFilter" class="block text-sm font-medium text-gray-700">Sector</label>
-                <select id="sectorFilter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md filter-select">
-                    <option value="">All Sectors</option>
-                </select>
-            </div>
-            <div>
-                <label for="regionFilter" class="block text-sm font-medium text-gray-700">Region</label>
-                <select id="regionFilter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md filter-select">
-                    <option value="">All Regions</option>
-                </select>
-            </div>
-            <div>
-                <label for="pestleFilter" class="block text-sm font-medium text-gray-700">PESTLE</label>
-                <select id="pestleFilter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md filter-select">
-                    <option value="">All PESTLE</option>
-                </select>
-            </div>
-            <div>
-                <label for="sourceFilter" class="block text-sm font-medium text-gray-700">Source</label>
-                <select id="sourceFilter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md filter-select">
-                    <option value="">All Sources</option>
-                </select>
-            </div>
-            <div>
-                <label for="countryFilter" class="block text-sm font-medium text-gray-700">Country</label>
-                <select id="countryFilter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md filter-select">
-                    <option value="">All Countries</option>
-                </select>
+            <div class="mt-6 text-right">
+                <button id="applyFiltersBtn" class="btn btn-primary">Apply Filters</button>
+                <button id="resetFiltersBtn" class="ml-2 btn btn-secondary">Reset Filters</button>
             </div>
         </div>
-         <div class="mt-4 text-right">
-            <button id="applyFiltersBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Apply Filters</button>
-            <button id="resetFiltersBtn" class="ml-2 px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">Reset Filters</button>
-        </div>
-    </div>
 
-    <div id="chartsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div class="chart-container col-span-1 md:col-span-1">
-            <h3 class="chart-title">Average Intensity by Topic (Top 10)</h3>
-            <svg id="intensityByTopicChart"></svg>
+        <div id="chartsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="chart-card col-span-1 md:col-span-1">
+                <h3 class="chart-title-text">Average Intensity by Topic (Top 10)</h3>
+                <svg id="intensityByTopicChart"></svg>
+            </div>
+            <div class="chart-card col-span-1 md:col-span-1">
+                <h3 class="chart-title-text">Average Likelihood by Region (Top 10)</h3>
+                <svg id="likelihoodByRegionChart"></svg>
+            </div>
+            <div class="chart-card col-span-1 md:col-span-1">
+                <h3 class="chart-title-text">Average Relevance by Sector (Top 10)</h3>
+                <svg id="relevanceBySectorChart"></svg>
+            </div>
+            <div class="chart-card col-span-1 md:col-span-2">
+                <h3 class="chart-title-text">Number of Insights by End Year</h3>
+                <svg id="insightsByYearChart"></svg>
+            </div>
+            <div class="chart-card col-span-1 md:col-span-1">
+                <h3 class="chart-title-text">PESTLE Distribution</h3>
+                <svg id="pestleDistributionChart"></svg>
+            </div>
+            <div class="chart-card col-span-1 md:col-span-1 lg:col-span-1">
+                <h3 class="chart-title-text">Top Countries by Insights (Top 10)</h3>
+                <svg id="countryDistributionChart"></svg>
+            </div>
+            <div class="chart-card col-span-1 md:col-span-2 lg:col-span-2">
+                <h3 class="chart-title-text">Top Sources by Insights (Top 10)</h3>
+                <svg id="sourceDistributionChart"></svg>
+            </div>
         </div>
-        <div class="chart-container col-span-1 md:col-span-1">
-            <h3 class="chart-title">Average Likelihood by Region (Top 10)</h3>
-            <svg id="likelihoodByRegionChart"></svg>
-        </div>
-        <div class="chart-container col-span-1 md:col-span-1">
-            <h3 class="chart-title">Average Relevance by Sector (Top 10)</h3>
-            <svg id="relevanceBySectorChart"></svg>
-        </div>
-        <div class="chart-container col-span-1 md:col-span-2">
-            <h3 class="chart-title">Number of Insights by End Year</h3>
-            <svg id="insightsByYearChart"></svg>
-        </div>
-        <div class="chart-container col-span-1 md:col-span-1">
-            <h3 class="chart-title">PESTLE Distribution</h3>
-            <svg id="pestleDistributionChart"></svg>
-        </div>
-         <div class="chart-container col-span-1 md:col-span-1 lg:col-span-1">
-            <h3 class="chart-title">Top 7 Countries by Insights</h3>
-            <svg id="countryDistributionChart"></svg>
-        </div>
-        <div class="chart-container col-span-1 md:col-span-2 lg:col-span-2">
-            <h3 class="chart-title">Top 7 Sources by Insights</h3>
-            <svg id="sourceDistributionChart"></svg>
-        </div>
-    </div>
+    </main>
 
     <div id="tooltip" class="tooltip"></div>
 
@@ -157,14 +250,16 @@
         // --- Utility Functions for D3 Charts ---
         function setupSvg(selector, margin) {
             const container = d3.select(selector).node().parentNode;
-            const width = container.clientWidth - margin.left - margin.right;
-            const height = 350 - margin.top - margin.bottom; // Fixed height for consistency, adjust as needed
+            // Ensure clientWidth is available and positive
+            const containerWidth = container.clientWidth > 0 ? container.clientWidth : 600; // Default width if clientWidth is 0
+            const width = containerWidth - margin.left - margin.right;
+            const height = 320 - margin.top - margin.bottom; // Adjusted height for better card fit
 
             d3.select(selector).selectAll("*").remove(); // Clear previous chart
 
             const svg = d3.select(selector)
-                .attr("width", width + margin.left + margin.right)
-                .attr("height", height + margin.top + margin.bottom)
+                .attr("viewBox", `0 0 ${containerWidth} ${height + margin.top + margin.bottom}`) // Use viewBox for responsiveness
+                .attr("preserveAspectRatio", "xMidYMid meet")
               .append("g")
                 .attr("transform", `translate(${margin.left},${margin.top})`);
             
@@ -172,30 +267,30 @@
         }
 
         function drawBarChart(selector, data, xValue, yValue, yLabel, title) {
-            const margin = {top: 20, right: 30, bottom: 100, left: 60}; // Increased bottom margin for labels
+            const margin = {top: 20, right: 20, bottom: 110, left: 50}; // Adjusted margins
             const { svg, width, height } = setupSvg(selector, margin);
 
             if (!data || data.length === 0) {
-                svg.append("text").attr("x", width/2).attr("y", height/2).attr("text-anchor", "middle").text("No data available for current filters.");
+                svg.append("text").attr("x", width/2).attr("y", height/2).attr("text-anchor", "middle").style("font-size", "14px").style("fill", "#6b7280").text("No data for current filters.");
                 return;
             }
             
-            // Sort data by yValue descending and take top N (e.g., top 10)
             const topN = 10;
             const chartData = data.sort((a, b) => d3.descending(a[yValue], b[yValue])).slice(0, topN);
-
 
             const xScale = d3.scaleBand()
                 .domain(chartData.map(d => d[xValue]))
                 .range([0, width])
-                .padding(0.2);
+                .padding(0.3); // Slightly increased padding
 
             const yScale = d3.scaleLinear()
-                .domain([0, d3.max(chartData, d => d[yValue]) || 1]) // Ensure domain starts at 0 and handles empty/all-zero data
+                .domain([0, d3.max(chartData, d => d[yValue]) || 1])
+                .nice() // Make the y-axis end on a nice round value
                 .range([height, 0]);
 
             // X-axis
             svg.append("g")
+                .attr("class", "axis x-axis")
                 .attr("transform", `translate(0,${height})`)
                 .call(d3.axisBottom(xScale))
                 .selectAll("text")
@@ -206,16 +301,18 @@
 
             // Y-axis
             svg.append("g")
-                .call(d3.axisLeft(yScale).ticks(5).tickFormat(d3.format(".2s"))); // Format ticks for readability e.g., 1k, 1M
+                .attr("class", "axis y-axis")
+                .call(d3.axisLeft(yScale).ticks(5).tickFormat(d3.formatPrefix(".1", 1e3))); // e.g., 1.0k, 1.5M
 
             // Y-axis label
             svg.append("text")
                 .attr("transform", "rotate(-90)")
-                .attr("y", 0 - margin.left + 15)
+                .attr("y", 0 - margin.left + 5) // Adjusted position
                 .attr("x", 0 - (height / 2))
                 .attr("dy", "1em")
                 .style("text-anchor", "middle")
                 .style("font-size", "12px")
+                .style("fill", "#4b5563") // gray-600
                 .text(yLabel);
 
             // Bars
@@ -223,33 +320,35 @@
                 .data(chartData)
                 .enter()
                 .append("rect")
-                .attr("class", "bar")
+                .attr("class", "bar") // Class for styling
                 .attr("x", d => xScale(d[xValue]))
-                .attr("y", d => yScale(d[yValue]))
+                .attr("y", d => yScale(0)) // Start from y=0 for animation
                 .attr("width", xScale.bandwidth())
-                .attr("height", d => height - yScale(d[yValue]))
-                .attr("fill", "steelblue")
+                .attr("height", 0) // Start with height 0 for animation
                 .on("mouseover", (event, d) => {
-                    tooltip.transition().duration(200).style("opacity", .9);
-                    tooltip.html(`${xValue}: ${d[xValue]}<br/>${yLabel}: ${d[yValue] ? d[yValue].toFixed(2) : 'N/A'}`)
-                        .style("left", (event.pageX + 5) + "px")
-                        .style("top", (event.pageY - 28) + "px");
+                    tooltip.transition().duration(100).style("opacity", .9);
+                    tooltip.html(`<strong>${d[xValue]}</strong><br/>${yLabel}: ${d[yValue] ? d[yValue].toFixed(2) : 'N/A'}`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 15) + "px");
                 })
                 .on("mouseout", () => {
-                    tooltip.transition().duration(500).style("opacity", 0);
-                });
+                    tooltip.transition().duration(300).style("opacity", 0);
+                })
+                .transition() // Add animation
+                .duration(750)
+                .attr("y", d => yScale(d[yValue]))
+                .attr("height", d => height - yScale(d[yValue]));
         }
 
         function drawLineChart(selector, data, xValue, yValue, xLabel, yLabel) {
-            const margin = {top: 20, right: 30, bottom: 50, left: 60};
+            const margin = {top: 20, right: 30, bottom: 60, left: 50}; // Adjusted margins
             const { svg, width, height } = setupSvg(selector, margin);
 
             if (!data || data.length === 0) {
-                svg.append("text").attr("x", width/2).attr("y", height/2).attr("text-anchor", "middle").text("No data available for current filters.");
+                 svg.append("text").attr("x", width/2).attr("y", height/2).attr("text-anchor", "middle").style("font-size", "14px").style("fill", "#6b7280").text("No data for current filters.");
                 return;
             }
 
-            // Ensure data is sorted by xValue (year)
             data.sort((a,b) => a[xValue] - b[xValue]);
 
             const xScale = d3.scaleLinear()
@@ -258,95 +357,101 @@
 
             const yScale = d3.scaleLinear()
                 .domain([0, d3.max(data, d => d[yValue]) || 1])
+                .nice()
                 .range([height, 0]);
 
             svg.append("g")
+                .attr("class", "axis x-axis")
                 .attr("transform", `translate(0,${height})`)
-                .call(d3.axisBottom(xScale).tickFormat(d3.format("d"))); // Format year as integer
+                .call(d3.axisBottom(xScale).tickFormat(d3.format("d")).ticks(Math.min(data.length, 10)));
 
             svg.append("g")
-                .call(d3.axisLeft(yScale).ticks(5));
+                .attr("class", "axis y-axis")
+                .call(d3.axisLeft(yScale).ticks(5).tickFormat(d3.formatPrefix(".1", 1e3)));
 
             // X-axis label
             svg.append("text")
                 .attr("text-anchor", "middle")
                 .attr("x", width / 2)
-                .attr("y", height + margin.bottom - 5)
+                .attr("y", height + margin.bottom - 15) // Adjusted position
                 .style("font-size", "12px")
+                .style("fill", "#4b5563")
                 .text(xLabel);
             
             // Y-axis label
             svg.append("text")
                 .attr("transform", "rotate(-90)")
-                .attr("y", 0 - margin.left + 15)
+                .attr("y", 0 - margin.left + 5)
                 .attr("x", 0 - (height / 2))
                 .attr("dy", "1em")
                 .style("text-anchor", "middle")
                 .style("font-size", "12px")
+                .style("fill", "#4b5563")
                 .text(yLabel);
 
             const line = d3.line()
                 .x(d => xScale(d[xValue]))
-                .y(d => yScale(d[yValue]));
+                .y(d => yScale(d[yValue]))
+                .curve(d3.curveMonotoneX); // Smoother line
 
             svg.append("path")
                 .datum(data)
-                .attr("fill", "none")
-                .attr("stroke", "steelblue")
-                .attr("stroke-width", 2)
+                .attr("class", "line-path") // Class for styling
                 .attr("d", line);
             
-            // Add points with tooltips
-            svg.selectAll(".dot")
+            svg.selectAll(".line-dot")
                 .data(data)
                 .enter().append("circle")
-                .attr("class", "dot")
+                .attr("class", "line-dot") // Class for styling
                 .attr("cx", d => xScale(d[xValue]))
                 .attr("cy", d => yScale(d[yValue]))
-                .attr("r", 4)
-                .attr("fill", "steelblue")
+                .attr("r", 4.5) // Slightly larger dots
                 .on("mouseover", (event, d) => {
-                    tooltip.transition().duration(200).style("opacity", .9);
-                    tooltip.html(`${xLabel}: ${d[xValue]}<br/>${yLabel}: ${d[yValue]}`)
-                        .style("left", (event.pageX + 5) + "px")
-                        .style("top", (event.pageY - 28) + "px");
+                    tooltip.transition().duration(100).style("opacity", .9);
+                    tooltip.html(`<strong>${xLabel}: ${d[xValue]}</strong><br/>${yLabel}: ${d[yValue]}`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 15) + "px");
+                    d3.select(event.currentTarget).transition().duration(100).attr("r", 6.5);
                 })
                 .on("mouseout", () => {
-                    tooltip.transition().duration(500).style("opacity", 0);
+                    tooltip.transition().duration(300).style("opacity", 0);
+                    d3.select(event.currentTarget).transition().duration(100).attr("r", 4.5);
                 });
         }
 
         function drawPieChart(selector, data, valueKey, labelKey) {
-            const margin = {top: 20, right: 20, bottom: 20, left: 20};
+            const margin = {top: 10, right: 10, bottom: 10, left: 10}; // Minimal margin for pie
             const container = d3.select(selector).node().parentNode;
-            const rawWidth = container.clientWidth;
-            const rawHeight = 350; // Fixed height
+            const rawWidth = container.clientWidth > 0 ? container.clientWidth : 400;
+            const rawHeight = 320; // Adjusted height
 
             const width = rawWidth - margin.left - margin.right;
             const height = rawHeight - margin.top - margin.bottom;
-            const radius = Math.min(width, height) / 2;
+            const radius = Math.min(width, height) / 2 - 10; // Add some padding around pie
 
-            d3.select(selector).selectAll("*").remove(); // Clear previous chart
+            d3.select(selector).selectAll("*").remove();
 
             const svg = d3.select(selector)
-                .attr("width", rawWidth)
-                .attr("height", rawHeight)
+                .attr("viewBox", `0 0 ${rawWidth} ${rawHeight}`)
+                .attr("preserveAspectRatio", "xMidYMid meet")
               .append("g")
                 .attr("transform", `translate(${rawWidth / 2}, ${rawHeight / 2})`);
 
             if (!data || data.length === 0) {
-                svg.append("text").attr("text-anchor", "middle").text("No data available.");
+                svg.append("text").attr("text-anchor", "middle").style("font-size", "14px").style("fill", "#6b7280").text("No data available.");
                 return;
             }
             
-            const color = d3.scaleOrdinal(d3.schemeCategory10);
+            // More vibrant and distinct color scale
+            const color = d3.scaleOrdinal(["#6366f1", "#818cf8", "#a5b4fc", "#ec4899", "#f472b6", "#f9a8d4", "#10b981", "#34d399", "#6ee7b7", "#f59e0b", "#fbbf24", "#fcd34d"]);
+
 
             const pie = d3.pie()
                 .value(d => d[valueKey])
-                .sort(null); // Keep original order or sort by value if needed
+                .sort((a,b) => d3.descending(a[valueKey], b[valueKey])); // Sort slices by value
 
             const arc = d3.arc()
-                .innerRadius(0) // For a pie chart; for donut, set innerRadius > 0
+                .innerRadius(radius * 0.5) // Donut chart
                 .outerRadius(radius);
 
             const g = svg.selectAll(".arc")
@@ -357,24 +462,37 @@
             g.append("path")
                 .attr("d", arc)
                 .style("fill", d => color(d.data[labelKey]))
+                .style("stroke", "#ffffff") // White stroke for separation
+                .style("stroke-width", "2px")
                 .on("mouseover", (event, d) => {
-                    tooltip.transition().duration(200).style("opacity", .9);
-                    tooltip.html(`${labelKey}: ${d.data[labelKey]}<br/>Count: ${d.data[valueKey]}`)
-                        .style("left", (event.pageX + 5) + "px")
-                        .style("top", (event.pageY - 28) + "px");
+                    tooltip.transition().duration(100).style("opacity", .9);
+                    tooltip.html(`<strong>${d.data[labelKey]}</strong><br/>Count: ${d.data[valueKey]}`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 15) + "px");
+                    d3.select(event.currentTarget).transition().duration(100).style("opacity", 0.85);
                 })
-                .on("mouseout", () => {
-                    tooltip.transition().duration(500).style("opacity", 0);
+                .on("mouseout", (event, d) => {
+                    tooltip.transition().duration(300).style("opacity", 0);
+                    d3.select(event.currentTarget).transition().duration(100).style("opacity", 1);
+                })
+                .transition() // Animation for path drawing
+                .duration(750)
+                .attrTween("d", function(d) {
+                    const i = d3.interpolate(d.startAngle, d.endAngle);
+                    return function(t) {
+                        d.endAngle = i(t);
+                        return arc(d);
+                    }
                 });
 
-            // Add labels to pie slices (optional, can get cluttered)
-            g.append("text")
-                .attr("transform", d => `translate(${arc.centroid(d)})`)
-                .attr("dy", ".35em")
-                .style("text-anchor", "middle")
-                .style("font-size", "10px")
-                .style("fill", "white")
-                .text(d => d.data[labelKey].length > 10 ? d.data[labelKey].substring(0,7)+"..." : d.data[labelKey] ); // Show label if slice is large enough
+            // Optional: Add center text for donut chart
+            svg.append("text")
+               .attr("text-anchor", "middle")
+               .attr("dy", "0.35em") // Vertically center
+               .style("font-size", "1rem")
+               .style("font-weight", "600")
+               .style("fill", "#374151")
+               .text(labelKey.charAt(0).toUpperCase() + labelKey.slice(1)); // e.g., "Pestle"
         }
 
 
@@ -382,16 +500,19 @@
         function processAndRenderCharts(data) {
             if (!data || data.length === 0) {
                 console.warn("No data to process for charts.");
-                // Optionally display a message in all chart containers
                 d3.selectAll("#chartsGrid svg").each(function() {
                     const svg = d3.select(this);
-                    const width = this.parentNode.clientWidth;
-                    const height = 350;
+                    const parentNode = this.parentNode;
+                    if (!parentNode) return;
+                    const containerWidth = parentNode.clientWidth > 0 ? parentNode.clientWidth : 600;
+                    const height = 320; // Match setupSvg height
                     svg.selectAll("*").remove();
-                    svg.append("text")
-                       .attr("x", width / 2)
+                    svg.attr("viewBox", `0 0 ${containerWidth} ${height}`)
+                       .append("text")
+                       .attr("x", containerWidth / 2)
                        .attr("y", height / 2)
                        .attr("text-anchor", "middle")
+                       .style("font-size", "14px").style("fill", "#6b7280")
                        .text("No data for current filters.");
                 });
                 return;
@@ -400,44 +521,45 @@
             // 1. Average Intensity by Topic
             const intensityByTopic = d3.rollups(data, v => d3.mean(v, d => d.intensity), d => d.topic)
                 .map(([key, value]) => ({ topic: key || "N/A", avg_intensity: value || 0 }))
-                .filter(d => d.topic !== "N/A" && d.topic !== "");
+                .filter(d => d.topic !== "N/A" && d.topic !== "" && d.avg_intensity > 0);
             drawBarChart("#intensityByTopicChart", intensityByTopic, "topic", "avg_intensity", "Avg. Intensity", "Average Intensity by Topic");
 
             // 2. Average Likelihood by Region
             const likelihoodByRegion = d3.rollups(data, v => d3.mean(v, d => d.likelihood), d => d.region)
                 .map(([key, value]) => ({ region: key || "N/A", avg_likelihood: value || 0 }))
-                .filter(d => d.region !== "N/A" && d.region !== "");
+                .filter(d => d.region !== "N/A" && d.region !== "" && d.avg_likelihood > 0);
             drawBarChart("#likelihoodByRegionChart", likelihoodByRegion, "region", "avg_likelihood", "Avg. Likelihood", "Average Likelihood by Region");
             
             // 3. Average Relevance by Sector
             const relevanceBySector = d3.rollups(data, v => d3.mean(v, d => d.relevance), d => d.sector)
                 .map(([key, value]) => ({ sector: key || "N/A", avg_relevance: value || 0 }))
-                .filter(d => d.sector !== "N/A" && d.sector !== "");
+                .filter(d => d.sector !== "N/A" && d.sector !== "" && d.avg_relevance > 0);
             drawBarChart("#relevanceBySectorChart", relevanceBySector, "sector", "avg_relevance", "Avg. Relevance", "Average Relevance by Sector");
 
             // 4. Number of Insights by End Year
             const insightsByYear = d3.rollups(data.filter(d => d.end_year), v => v.length, d => d.end_year)
                 .map(([key, value]) => ({ end_year: key, count: value }))
-                .sort((a,b) => a.end_year - b.end_year); // Sort by year
+                .filter(d => d.end_year !== null && d.end_year !== "" && d.count > 0) // Filter out null/empty years
+                .sort((a,b) => a.end_year - b.end_year);
             drawLineChart("#insightsByYearChart", insightsByYear, "end_year", "count", "End Year", "Number of Insights");
 
             // 5. PESTLE Distribution
             const pestleDistribution = d3.rollups(data, v => v.length, d => d.pestle)
                 .map(([key, value]) => ({ pestle: key || "N/A", count: value }))
-                .filter(d => d.pestle !== "N/A" && d.pestle !== "");
+                .filter(d => d.pestle !== "N/A" && d.pestle !== "" && d.count > 0);
             drawPieChart("#pestleDistributionChart", pestleDistribution, "count", "pestle");
             
             // 6. Top N Countries by Insight Count
             const countryDistribution = d3.rollups(data, v => v.length, d => d.country)
                 .map(([key, value]) => ({ country: key || "N/A", count: value }))
-                .filter(d => d.country !== "N/A" && d.country !== "");
-            drawBarChart("#countryDistributionChart", countryDistribution, "country", "count", "Number of Insights", "Top Countries by Insights");
+                .filter(d => d.country !== "N/A" && d.country !== "" && d.count > 0);
+            drawBarChart("#countryDistributionChart", countryDistribution, "country", "count", "Insights Count", "Top Countries by Insights");
 
             // 7. Top N Sources by Insight Count
             const sourceDistribution = d3.rollups(data, v => v.length, d => d.source)
                 .map(([key, value]) => ({ source: key || "N/A", count: value }))
-                .filter(d => d.source !== "N/A" && d.source !== "");
-            drawBarChart("#sourceDistributionChart", sourceDistribution, "source", "count", "Number of Insights", "Top Sources by Insights");
+                .filter(d => d.source !== "N/A" && d.source !== "" && d.count > 0);
+            drawBarChart("#sourceDistributionChart", sourceDistribution, "source", "count", "Insights Count", "Top Sources by Insights");
         }
 
 
@@ -461,23 +583,37 @@
                 for (const [key, selector] of Object.entries(filterSelectors)) {
                     const selectElement = d3.select(selector);
                     if (filters[key] && filters[key].length > 0) {
-                        selectElement.selectAll('option:not(:first-child)').remove(); // Remove old options except "All"
-                        filters[key].forEach(optionValue => {
-                            if(optionValue !== null && optionValue !== "") { // Ensure options are not null or empty
+                        selectElement.selectAll('option:not(:first-child)').remove(); 
+                        // Sort options alphabetically, except for end_year which should be numeric
+                        const sortedOptions = key === 'end_year' ? 
+                            filters[key].sort((a,b) => b - a) : // Sort years descending
+                            filters[key].sort((a,b) => String(a).localeCompare(String(b)));
+
+                        sortedOptions.forEach(optionValue => {
+                            if(optionValue !== null && String(optionValue).trim() !== "") { 
                                 selectElement.append('option').attr('value', optionValue).text(optionValue);
                             }
                         });
                     } else {
-                         console.warn(`No filter options received for ${key}`);
+                         console.warn(`No filter options received or options array empty for ${key}`);
+                         selectElement.selectAll('option:not(:first-child)').remove(); // Clear if no valid options
                     }
                 }
             } catch (error) {
                 console.error("Error fetching filter options:", error);
-                alert("Could not load filter options. Please check the console for errors and ensure the backend is running.");
+                // Display user-friendly message on the page if filters fail to load
+                d3.select("#filters")
+                  .insert("div", ":first-child") // Insert at the beginning of the filters div
+                  .attr("class", "p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg")
+                  .attr("role", "alert")
+                  .html("<span class='font-medium'>Error!</span> Could not load filter options. Please ensure the backend is running and check console for details.");
             }
         }
 
         async function loadAndDisplayData() {
+            // Show a loading indicator (optional)
+            // d3.select("body").append("div").attr("class", "loading-overlay").text("Loading data...");
+
             const params = new URLSearchParams();
             const filters = {
                 'end_year': d3.select('#endYearFilter').property('value'),
@@ -502,28 +638,39 @@
                 processAndRenderCharts(data);
             } catch (error) {
                 console.error("Error fetching dashboard data:", error);
-                alert("Could not load dashboard data. Please check the console for errors and ensure the backend is running.");
+                 d3.selectAll("#chartsGrid svg").each(function() { // Clear charts and show error
+                    const svg = d3.select(this);
+                    const parentNode = this.parentNode;
+                     if (!parentNode) return;
+                    const containerWidth = parentNode.clientWidth > 0 ? parentNode.clientWidth : 600;
+                    const height = 320;
+                    svg.selectAll("*").remove();
+                    svg.attr("viewBox", `0 0 ${containerWidth} ${height}`)
+                       .append("text")
+                       .attr("x", containerWidth / 2)
+                       .attr("y", height / 2)
+                       .attr("text-anchor", "middle")
+                       .style("font-size", "14px").style("fill", "#ef4444") // red-500
+                       .text("Error loading chart data.");
+                });
+            } finally {
+                // Remove loading indicator
+                // d3.select(".loading-overlay").remove();
             }
         }
         
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
             populateFilters();
-            loadAndDisplayData(); // Initial load
+            loadAndDisplayData(); 
 
             d3.select('#applyFiltersBtn').on('click', loadAndDisplayData);
             d3.select('#resetFiltersBtn').on('click', () => {
-                d3.selectAll(".filter-select").property('value', ''); // Reset all select elements
-                loadAndDisplayData(); // Reload data with no filters
+                d3.selectAll(".filter-select").property('value', ''); 
+                loadAndDisplayData(); 
             });
-
-            // Optional: Add event listeners to individual filters to auto-apply
-            // d3.selectAll(".filter-select").on("change", loadAndDisplayData);
-            // However, an "Apply" button is often better for performance with many filters.
         });
 
-        // Handle window resize to make charts responsive
-        // Debounce resize function to avoid excessive calls
         function debounce(func, wait) {
             let timeout;
             return function executedFunction(...args) {
@@ -536,7 +683,7 @@
             };
         }
 
-        const debouncedLoadData = debounce(loadAndDisplayData, 250);
+        const debouncedLoadData = debounce(loadAndDisplayData, 300); // Increased debounce time slightly
         window.addEventListener('resize', debouncedLoadData);
 
     </script>
