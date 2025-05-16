@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Visualization Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif; /* A common, clean sans-serif font */
+            background-color: #f3f4f6; /* Light gray background */
+        }
+        .chart-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            overflow-x: auto; /* For charts that might be wide */
+        }
+        .filter-select {
+            min-width: 150px; /* Ensure select boxes have a decent width */
+        }
+        /* Custom scrollbar for chart containers if needed */
+        .chart-container::-webkit-scrollbar {
+            height: 8px;
+        }
+        .chart-container::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1; /* scrollbar color */
+            border-radius: 4px;
+        }
+        .chart-title {
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 600; /* font-semibold */
+            margin-bottom: 1rem; /* mb-4 */
+            color: #1f2937; /* text-gray-800 */
+        }
+        /* D3 Tooltip Style */
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            padding: 8px;
+            font: 12px sans-serif;
+            background: lightsteelblue;
+            border: 0px;
+            border-radius: 8px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        /* Ensure SVGs are responsive */
+        svg {
+            width: 100%;
+            height: auto;
+            max-height: 400px; /* Prevent charts from becoming too tall */
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <header class="mb-8">
+        <h1 class="text-3xl font-bold text-center text-gray-700">Data Insights Dashboard</h1>
+    </header>
+
+    <div id="filters" class="mb-8 p-6 bg-white rounded-lg shadow-md">
+        <h2 class="text-xl font-semibold mb-4 text-gray-700">Filters</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+            <div>
+                <label for="endYearFilter" class="block text-sm font-medium text-gray-700">End Year</label>
+                <select id="endYearFilter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md filter-select">
+                    <option value="">All Years</option>
+                </select>
+            </div>
+            <div>
+                <label for="topicFilter" class="block text-sm font-medium text-gray-700">Topic</label>
+                <select id="topicFilter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md filter-select">
+                    <option value="">All Topics</option>
+                </select>
+            </div>
+            <div>
+                <label for="sectorFilter" class="block text-sm font-medium text-gray-700">Sector</label>
+                <select id="sectorFilter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md filter-select">
+                    <option value="">All Sectors</option>
+                </select>
+            </div>
+            <div>
+                <label for="regionFilter" class="block text-sm font-medium text-gray-700">Region</label>
+                <select id="regionFilter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md filter-select">
+                    <option value="">All Regions</option>
+                </select>
+            </div>
+            <div>
+                <label for="pestleFilter" class="block text-sm font-medium text-gray-700">PESTLE</label>
+                <select id="pestleFilter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md filter-select">
+                    <option value="">All PESTLE</option>
+                </select>
+            </div>
+            <div>
+                <label for="sourceFilter" class="block text-sm font-medium text-gray-700">Source</label>
+                <select id="sourceFilter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md filter-select">
+                    <option value="">All Sources</option>
+                </select>
+            </div>
+            <div>
+                <label for="countryFilter" class="block text-sm font-medium text-gray-700">Country</label>
+                <select id="countryFilter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md filter-select">
+                    <option value="">All Countries</option>
+                </select>
+            </div>
+        </div>
+         <div class="mt-4 text-right">
+            <button id="applyFiltersBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Apply Filters</button>
+            <button id="resetFiltersBtn" class="ml-2 px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">Reset Filters</button>
+        </div>
+    </div>
+
+    <div id="chartsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="chart-container col-span-1 md:col-span-1">
+            <h3 class="chart-title">Average Intensity by Topic (Top 10)</h3>
+            <svg id="intensityByTopicChart"></svg>
+        </div>
+        <div class="chart-container col-span-1 md:col-span-1">
+            <h3 class="chart-title">Average Likelihood by Region (Top 10)</h3>
+            <svg id="likelihoodByRegionChart"></svg>
+        </div>
+        <div class="chart-container col-span-1 md:col-span-1">
+            <h3 class="chart-title">Average Relevance by Sector (Top 10)</h3>
+            <svg id="relevanceBySectorChart"></svg>
+        </div>
+        <div class="chart-container col-span-1 md:col-span-2">
+            <h3 class="chart-title">Number of Insights by End Year</h3>
+            <svg id="insightsByYearChart"></svg>
+        </div>
+        <div class="chart-container col-span-1 md:col-span-1">
+            <h3 class="chart-title">PESTLE Distribution</h3>
+            <svg id="pestleDistributionChart"></svg>
+        </div>
+         <div class="chart-container col-span-1 md:col-span-1 lg:col-span-1">
+            <h3 class="chart-title">Top 7 Countries by Insights</h3>
+            <svg id="countryDistributionChart"></svg>
+        </div>
+        <div class="chart-container col-span-1 md:col-span-2 lg:col-span-2">
+            <h3 class="chart-title">Top 7 Sources by Insights</h3>
+            <svg id="sourceDistributionChart"></svg>
+        </div>
+    </div>
+
+    <div id="tooltip" class="tooltip"></div>
+
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:5001/api'; // Make sure this matches your Flask app's port
+
+        // Tooltip
+        const tooltip = d3.select("#tooltip");
+
+        // --- Utility Functions for D3 Charts ---
+        function setupSvg(selector, margin) {
+            const container = d3.select(selector).node().parentNode;
+            const width = container.clientWidth - margin.left - margin.right;
+            const height = 350 - margin.top - margin.bottom; // Fixed height for consistency, adjust as needed
+
+            d3.select(selector).selectAll("*").remove(); // Clear previous chart
+
+            const svg = d3.select(selector)
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+              .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+            
+            return { svg, width, height };
+        }
+
+        function drawBarChart(selector, data, xValue, yValue, yLabel, title) {
+            const margin = {top: 20, right: 30, bottom: 100, left: 60}; // Increased bottom margin for labels
+            const { svg, width, height } = setupSvg(selector, margin);
+
+            if (!data || data.length === 0) {
+                svg.append("text").attr("x", width/2).attr("y", height/2).attr("text-anchor", "middle").text("No data available for current filters.");
+                return;
+            }
+            
+            // Sort data by yValue descending and take top N (e.g., top 10)
+            const topN = 10;
+            const chartData = data.sort((a, b) => d3.descending(a[yValue], b[yValue])).slice(0, topN);
+
+
+            const xScale = d3.scaleBand()
+                .domain(chartData.map(d => d[xValue]))
+                .range([0, width])
+                .padding(0.2);
+
+            const yScale = d3.scaleLinear()
+                .domain([0, d3.max(chartData, d => d[yValue]) || 1]) // Ensure domain starts at 0 and handles empty/all-zero data
+                .range([height, 0]);
+
+            // X-axis
+            svg.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(xScale))
+                .selectAll("text")
+                .attr("transform", "rotate(-45)")
+                .style("text-anchor", "end")
+                .attr("dx", "-.8em")
+                .attr("dy", ".15em");
+
+            // Y-axis
+            svg.append("g")
+                .call(d3.axisLeft(yScale).ticks(5).tickFormat(d3.format(".2s"))); // Format ticks for readability e.g., 1k, 1M
+
+            // Y-axis label
+            svg.append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("y", 0 - margin.left + 15)
+                .attr("x", 0 - (height / 2))
+                .attr("dy", "1em")
+                .style("text-anchor", "middle")
+                .style("font-size", "12px")
+                .text(yLabel);
+
+            // Bars
+            svg.selectAll(".bar")
+                .data(chartData)
+                .enter()
+                .append("rect")
+                .attr("class", "bar")
+                .attr("x", d => xScale(d[xValue]))
+                .attr("y", d => yScale(d[yValue]))
+                .attr("width", xScale.bandwidth())
+                .attr("height", d => height - yScale(d[yValue]))
+                .attr("fill", "steelblue")
+                .on("mouseover", (event, d) => {
+                    tooltip.transition().duration(200).style("opacity", .9);
+                    tooltip.html(`${xValue}: ${d[xValue]}<br/>${yLabel}: ${d[yValue] ? d[yValue].toFixed(2) : 'N/A'}`)
+                        .style("left", (event.pageX + 5) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseout", () => {
+                    tooltip.transition().duration(500).style("opacity", 0);
+                });
+        }
+
+        function drawLineChart(selector, data, xValue, yValue, xLabel, yLabel) {
+            const margin = {top: 20, right: 30, bottom: 50, left: 60};
+            const { svg, width, height } = setupSvg(selector, margin);
+
+            if (!data || data.length === 0) {
+                svg.append("text").attr("x", width/2).attr("y", height/2).attr("text-anchor", "middle").text("No data available for current filters.");
+                return;
+            }
+
+            // Ensure data is sorted by xValue (year)
+            data.sort((a,b) => a[xValue] - b[xValue]);
+
+            const xScale = d3.scaleLinear()
+                .domain(d3.extent(data, d => d[xValue]))
+                .range([0, width]);
+
+            const yScale = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d[yValue]) || 1])
+                .range([height, 0]);
+
+            svg.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(xScale).tickFormat(d3.format("d"))); // Format year as integer
+
+            svg.append("g")
+                .call(d3.axisLeft(yScale).ticks(5));
+
+            // X-axis label
+            svg.append("text")
+                .attr("text-anchor", "middle")
+                .attr("x", width / 2)
+                .attr("y", height + margin.bottom - 5)
+                .style("font-size", "12px")
+                .text(xLabel);
+            
+            // Y-axis label
+            svg.append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("y", 0 - margin.left + 15)
+                .attr("x", 0 - (height / 2))
+                .attr("dy", "1em")
+                .style("text-anchor", "middle")
+                .style("font-size", "12px")
+                .text(yLabel);
+
+            const line = d3.line()
+                .x(d => xScale(d[xValue]))
+                .y(d => yScale(d[yValue]));
+
+            svg.append("path")
+                .datum(data)
+                .attr("fill", "none")
+                .attr("stroke", "steelblue")
+                .attr("stroke-width", 2)
+                .attr("d", line);
+            
+            // Add points with tooltips
+            svg.selectAll(".dot")
+                .data(data)
+                .enter().append("circle")
+                .attr("class", "dot")
+                .attr("cx", d => xScale(d[xValue]))
+                .attr("cy", d => yScale(d[yValue]))
+                .attr("r", 4)
+                .attr("fill", "steelblue")
+                .on("mouseover", (event, d) => {
+                    tooltip.transition().duration(200).style("opacity", .9);
+                    tooltip.html(`${xLabel}: ${d[xValue]}<br/>${yLabel}: ${d[yValue]}`)
+                        .style("left", (event.pageX + 5) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseout", () => {
+                    tooltip.transition().duration(500).style("opacity", 0);
+                });
+        }
+
+        function drawPieChart(selector, data, valueKey, labelKey) {
+            const margin = {top: 20, right: 20, bottom: 20, left: 20};
+            const container = d3.select(selector).node().parentNode;
+            const rawWidth = container.clientWidth;
+            const rawHeight = 350; // Fixed height
+
+            const width = rawWidth - margin.left - margin.right;
+            const height = rawHeight - margin.top - margin.bottom;
+            const radius = Math.min(width, height) / 2;
+
+            d3.select(selector).selectAll("*").remove(); // Clear previous chart
+
+            const svg = d3.select(selector)
+                .attr("width", rawWidth)
+                .attr("height", rawHeight)
+              .append("g")
+                .attr("transform", `translate(${rawWidth / 2}, ${rawHeight / 2})`);
+
+            if (!data || data.length === 0) {
+                svg.append("text").attr("text-anchor", "middle").text("No data available.");
+                return;
+            }
+            
+            const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+            const pie = d3.pie()
+                .value(d => d[valueKey])
+                .sort(null); // Keep original order or sort by value if needed
+
+            const arc = d3.arc()
+                .innerRadius(0) // For a pie chart; for donut, set innerRadius > 0
+                .outerRadius(radius);
+
+            const g = svg.selectAll(".arc")
+                .data(pie(data))
+                .enter().append("g")
+                .attr("class", "arc");
+
+            g.append("path")
+                .attr("d", arc)
+                .style("fill", d => color(d.data[labelKey]))
+                .on("mouseover", (event, d) => {
+                    tooltip.transition().duration(200).style("opacity", .9);
+                    tooltip.html(`${labelKey}: ${d.data[labelKey]}<br/>Count: ${d.data[valueKey]}`)
+                        .style("left", (event.pageX + 5) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseout", () => {
+                    tooltip.transition().duration(500).style("opacity", 0);
+                });
+
+            // Add labels to pie slices (optional, can get cluttered)
+            g.append("text")
+                .attr("transform", d => `translate(${arc.centroid(d)})`)
+                .attr("dy", ".35em")
+                .style("text-anchor", "middle")
+                .style("font-size", "10px")
+                .style("fill", "white")
+                .text(d => d.data[labelKey].length > 10 ? d.data[labelKey].substring(0,7)+"..." : d.data[labelKey] ); // Show label if slice is large enough
+        }
+
+
+        // --- Data Processing and Chart Rendering ---
+        function processAndRenderCharts(data) {
+            if (!data || data.length === 0) {
+                console.warn("No data to process for charts.");
+                // Optionally display a message in all chart containers
+                d3.selectAll("#chartsGrid svg").each(function() {
+                    const svg = d3.select(this);
+                    const width = this.parentNode.clientWidth;
+                    const height = 350;
+                    svg.selectAll("*").remove();
+                    svg.append("text")
+                       .attr("x", width / 2)
+                       .attr("y", height / 2)
+                       .attr("text-anchor", "middle")
+                       .text("No data for current filters.");
+                });
+                return;
+            }
+
+            // 1. Average Intensity by Topic
+            const intensityByTopic = d3.rollups(data, v => d3.mean(v, d => d.intensity), d => d.topic)
+                .map(([key, value]) => ({ topic: key || "N/A", avg_intensity: value || 0 }))
+                .filter(d => d.topic !== "N/A" && d.topic !== "");
+            drawBarChart("#intensityByTopicChart", intensityByTopic, "topic", "avg_intensity", "Avg. Intensity", "Average Intensity by Topic");
+
+            // 2. Average Likelihood by Region
+            const likelihoodByRegion = d3.rollups(data, v => d3.mean(v, d => d.likelihood), d => d.region)
+                .map(([key, value]) => ({ region: key || "N/A", avg_likelihood: value || 0 }))
+                .filter(d => d.region !== "N/A" && d.region !== "");
+            drawBarChart("#likelihoodByRegionChart", likelihoodByRegion, "region", "avg_likelihood", "Avg. Likelihood", "Average Likelihood by Region");
+            
+            // 3. Average Relevance by Sector
+            const relevanceBySector = d3.rollups(data, v => d3.mean(v, d => d.relevance), d => d.sector)
+                .map(([key, value]) => ({ sector: key || "N/A", avg_relevance: value || 0 }))
+                .filter(d => d.sector !== "N/A" && d.sector !== "");
+            drawBarChart("#relevanceBySectorChart", relevanceBySector, "sector", "avg_relevance", "Avg. Relevance", "Average Relevance by Sector");
+
+            // 4. Number of Insights by End Year
+            const insightsByYear = d3.rollups(data.filter(d => d.end_year), v => v.length, d => d.end_year)
+                .map(([key, value]) => ({ end_year: key, count: value }))
+                .sort((a,b) => a.end_year - b.end_year); // Sort by year
+            drawLineChart("#insightsByYearChart", insightsByYear, "end_year", "count", "End Year", "Number of Insights");
+
+            // 5. PESTLE Distribution
+            const pestleDistribution = d3.rollups(data, v => v.length, d => d.pestle)
+                .map(([key, value]) => ({ pestle: key || "N/A", count: value }))
+                .filter(d => d.pestle !== "N/A" && d.pestle !== "");
+            drawPieChart("#pestleDistributionChart", pestleDistribution, "count", "pestle");
+            
+            // 6. Top N Countries by Insight Count
+            const countryDistribution = d3.rollups(data, v => v.length, d => d.country)
+                .map(([key, value]) => ({ country: key || "N/A", count: value }))
+                .filter(d => d.country !== "N/A" && d.country !== "");
+            drawBarChart("#countryDistributionChart", countryDistribution, "country", "count", "Number of Insights", "Top Countries by Insights");
+
+            // 7. Top N Sources by Insight Count
+            const sourceDistribution = d3.rollups(data, v => v.length, d => d.source)
+                .map(([key, value]) => ({ source: key || "N/A", count: value }))
+                .filter(d => d.source !== "N/A" && d.source !== "");
+            drawBarChart("#sourceDistributionChart", sourceDistribution, "source", "count", "Number of Insights", "Top Sources by Insights");
+        }
+
+
+        // --- Filter Logic ---
+        async function populateFilters() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/filters`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const filters = await response.json();
+
+                const filterSelectors = {
+                    'end_year': '#endYearFilter',
+                    'topic': '#topicFilter',
+                    'sector': '#sectorFilter',
+                    'region': '#regionFilter',
+                    'pestle': '#pestleFilter',
+                    'source': '#sourceFilter',
+                    'country': '#countryFilter'
+                };
+
+                for (const [key, selector] of Object.entries(filterSelectors)) {
+                    const selectElement = d3.select(selector);
+                    if (filters[key] && filters[key].length > 0) {
+                        selectElement.selectAll('option:not(:first-child)').remove(); // Remove old options except "All"
+                        filters[key].forEach(optionValue => {
+                            if(optionValue !== null && optionValue !== "") { // Ensure options are not null or empty
+                                selectElement.append('option').attr('value', optionValue).text(optionValue);
+                            }
+                        });
+                    } else {
+                         console.warn(`No filter options received for ${key}`);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching filter options:", error);
+                alert("Could not load filter options. Please check the console for errors and ensure the backend is running.");
+            }
+        }
+
+        async function loadAndDisplayData() {
+            const params = new URLSearchParams();
+            const filters = {
+                'end_year': d3.select('#endYearFilter').property('value'),
+                'topic': d3.select('#topicFilter').property('value'),
+                'sector': d3.select('#sectorFilter').property('value'),
+                'region': d3.select('#regionFilter').property('value'),
+                'pestle': d3.select('#pestleFilter').property('value'),
+                'source': d3.select('#sourceFilter').property('value'),
+                'country': d3.select('#countryFilter').property('value')
+            };
+
+            for (const [key, value] of Object.entries(filters)) {
+                if (value) {
+                    params.append(key, value);
+                }
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/data?${params.toString()}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                processAndRenderCharts(data);
+            } catch (error) {
+                console.error("Error fetching dashboard data:", error);
+                alert("Could not load dashboard data. Please check the console for errors and ensure the backend is running.");
+            }
+        }
+        
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            populateFilters();
+            loadAndDisplayData(); // Initial load
+
+            d3.select('#applyFiltersBtn').on('click', loadAndDisplayData);
+            d3.select('#resetFiltersBtn').on('click', () => {
+                d3.selectAll(".filter-select").property('value', ''); // Reset all select elements
+                loadAndDisplayData(); // Reload data with no filters
+            });
+
+            // Optional: Add event listeners to individual filters to auto-apply
+            // d3.selectAll(".filter-select").on("change", loadAndDisplayData);
+            // However, an "Apply" button is often better for performance with many filters.
+        });
+
+        // Handle window resize to make charts responsive
+        // Debounce resize function to avoid excessive calls
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        const debouncedLoadData = debounce(loadAndDisplayData, 250);
+        window.addEventListener('resize', debouncedLoadData);
+
+    </script>
+</body>
+</html>
