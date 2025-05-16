@@ -10,14 +10,19 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #eef2f7; /* Lighter, slightly bluish gray background */
+            /* Fallback background color */
+            background-color: #eef2f7; 
+            /* Subtle linear gradient for a more modern background */
+            background-image: linear-gradient(135deg, #eef2f7 25%, #e0e5ec 100%);
             color: #374151; /* Default text color - gray-700 */
+            min-height: 100vh; /* Ensure gradient covers the full viewport height */
+            margin: 0; /* Remove default body margin */
         }
         .dashboard-header {
             background-color: #ffffff;
             box-shadow: 0 2px 4px 0 rgba(0,0,0,0.05);
             padding: 1rem 2rem; /* py-4 px-8 */
-            margin-bottom: 2rem; /* mb-8 */
+            /* Removed margin-bottom from header, main content will handle spacing */
         }
         .dashboard-title {
             color: #1e3a8a; /* Darker blue for title - blue-800 */
@@ -28,7 +33,7 @@
             padding: 1.5rem; /* p-6 */
             border-radius: 0.5rem; /* rounded-lg */
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Softer, more spread shadow */
-            margin-bottom: 2rem; /* mb-8 */
+            /* margin-bottom will be handled by main's gap or direct margin if needed */
         }
         .filter-title {
             color: #1f2937; /* text-gray-800 */
@@ -71,7 +76,7 @@
             padding: 1.5rem; /* p-6 */
             border-radius: 0.5rem; /* rounded-lg */
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            margin-bottom: 1.5rem; /* mb-6 */
+            /* margin-bottom is handled by the grid gap in #chartsGrid */
             overflow-x: auto;
         }
         .chart-card::-webkit-scrollbar {
@@ -148,14 +153,22 @@
             r: 6px !important; /* Increase radius on hover */
             fill: #4338ca; /* indigo-700 */
         }
+        /* Main content area styling for spacing */
+        main {
+            padding-top: 2rem; /* Add space below the header */
+            padding-bottom: 2rem; /* Add space at the bottom of the page */
+        }
+        #filters {
+            margin-bottom: 2rem; /* Space between filters and charts grid */
+        }
+
     </style>
 </head>
 <body class="p-0 md:p-0"> <header class="dashboard-header">
         <h1 class="text-3xl font-bold text-center dashboard-title">Data Insights Dashboard</h1>
     </header>
 
-    <main class="p-4 md:p-8">
-        <div id="filters" class="filter-container">
+    <main class="px-4 md:px-8"> <div id="filters" class="filter-container">
             <h2 class="text-xl font-semibold mb-6 filter-title">Refine Your View</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 items-end">
                 <div>
@@ -636,7 +649,7 @@
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
                 processAndRenderCharts(data);
-            } catch (error) {
+            } catch (error)
                 console.error("Error fetching dashboard data:", error);
                  d3.selectAll("#chartsGrid svg").each(function() { // Clear charts and show error
                     const svg = d3.select(this);
